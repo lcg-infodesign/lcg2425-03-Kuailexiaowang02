@@ -1,3 +1,4 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/rKbf-r4Q)
 # P5-empty-project
 This repository is the starting point of the assignments given in the course [Computergrafica per l'Information Design](https://www11.ceda.polimi.it/schedaincarico/schedaincarico/controller/scheda_pubblica/SchedaPublic.do?&evn_default=evento&c_classe=834257&lang=IT&__pj0=0&__pj1=9c10fe379e96db59d55d49b6b4252c5e).
+Notes: La dimensione del rombo rappresenta la lunghezza del fiume: più lungo è il fiume, più grande è il rombo. La tonalità del colore, che varia dal blu chiaro al blu scuro, riflette la temperatura media del fiume: più alta è la temperatura, più scuro è il colore. I punti bianchi distribuiti in modo irregolare all'interno del rombo indicano il flusso del fiume: maggiore è il flusso, più numerosi sono i punti.

@@ -1,80 +1,126 @@
-let riverdata
+let riverData;
 
 function preload() {
   // put preload code here
-  riverdata = loadTable ("assets1/Rivers_in_the _world_Data", "csv", "header")
+  riverData = loadTable ("assets/data.csv", "csv", "header")
 }
+let bgColor = "#F0F0F0";
+let baseColors = ["#00A8E8", "#007EA7", "#145DA0", "#1A508B", "#133B5C"]; // 温度颜色梯度
+let textColor = "black";
+
+let gridSize = 150; // 每个 glyph 的宽高
+let padding = 20;
+let textHeight = 60; // 为文字预留更多高度
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  // put setup code here
-background(255);
-let margin = 20
-let cols = 10;
-let rows = 10;
-}
+  // 计算动态网格布局
+  let cols = floor((windowWidth - padding) / (gridSize + padding));
+  let rows = ceil(riverData.getRowCount() / cols);
+  let canvasHeight = rows * (gridSize + padding + textHeight) + padding;
 
-function draw() {
-  // put drawing code here
+  createCanvas(windowWidth, canvasHeight);
+  background(bgColor);
+
+  let xPos = padding;
+  let yPos = padding;
+
   for (let i = 0; i < riverData.getRowCount(); i++) {
-    let row = riverdata.getRow(i);
+    let row = riverData.getRow(i);
+    let item = {
+      name: row.get("name"),
+      country: row.get("countries"),
+      length: row.getNum("length"),
+      discharge: row.getNum("discharge"),
+      avgTemp: row.getNum("avg_temp"),
+    };
 
-    // 取出数据
-    let length = row.getNum("length");
-    let discharge = row.getNum("discharge");
-    let avgTemp = row.getNum("avg_temp");
-    let continent = row.getString("continent");
+    drawGlyph(xPos, yPos, gridSize, item);
 
-    // 计算位置
-    let x = margin + (i % cols) * (cellWidth + margin) + cellWidth / 2;
-    let y = margin + floor(i / cols) * (cellHeight + margin) + cellHeight / 2;
+    xPos += gridSize + padding;
 
-    push();
-    translate(x, y);
-    drawGlyph(length, discharge, avgTemp, continent, min(cellWidth, cellHeight) / 2);
-    pop();
+    // 自动换行
+    if (xPos + gridSize > width) {
+      xPos = padding;
+      yPos += gridSize + padding + textHeight;
+    }
   }
 }
 
-// 根据河流数据绘制图案
-function drawGlyph(length, discharge, avgTemp, continent, maxSize) {
-  // 颜色和形状设置
-  let size = map(length, 500, 7000, maxSize * 0.5, maxSize); // 基于长度设置大小
-  let colorVal = map(discharge, 1000, 50000, 100, 255); // 基于流量设置颜色
-  let glowSize = map(avgTemp, -20, 30, maxSize * 0.8, maxSize * 1.2); // 基于温度设置光晕大小
-  let glyphColor = color(colorVal, 100, 200, 180);
+function drawGlyph(x, y, size, data) {
+  push();
+  translate(x + size / 2, y + size / 2);
 
-  fill(glyphColor);
+  // 1. 菱形的大小表示长度（调整大小范围以突出差异）
+  let diamondSize = map(data.length, 500, 7000, size * 0.2, size * 0.95);
+
+  // 2. 菱形的颜色表示温度
+  let tempColorIndex = floor(map(data.avgTemp, -20, 40, 0, baseColors.length - 1));
+  fill(baseColors[tempColorIndex]);
   noStroke();
 
-  // 根据大陆选择形状
-  if (continent === "Africa") {
-    ellipse(0, 0, size, size); // 圆形表示非洲
-  } else if (continent === "Asia") {
-    rectMode(CENTER);
-    rect(0, 0, size, size); // 正方形表示亚洲
-  } else if (continent === "Europe") {
-    beginShape();
-    for (let i = 0; i < 5; i++) {
-      let angle = map(i, 0, 5, 0, TWO_PI);
-      let r = size / 2;
-      vertex(cos(angle) * r, sin(angle) * r);
-    }
-    endShape(CLOSE); // 五边形表示欧洲
-  } else if (continent === "South America") {
-    triangle(0, -size / 2, -size / 2, size / 2, size / 2, size / 2); // 三角形表示南美
-  } else {
-    ellipse(0, 0, size, size / 1.5); // 椭圆表示其他区域
-  }
+  beginShape();
+  vertex(0, -diamondSize / 2);
+  vertex(diamondSize / 2, 0);
+  vertex(0, diamondSize / 2);
+  vertex(-diamondSize / 2, 0);
+  endShape(CLOSE);
 
-  // 绘制光晕效果
-  drawGlow(glowSize);
+  // 3. 在菱形中绘制流量相关的不规则分布点
+  drawFlowDots(diamondSize, data.discharge);
+
+  // 4. 显示河流名称和国家（自动换行）
+  fill(textColor);
+  textAlign(CENTER, CENTER);
+  textSize(10);
+  drawWrappedText(`${data.name}\n(${data.country})`, 0, size / 2 + 15, size);
+
+  pop();
 }
 
-// 绘制光晕效果
-function drawGlow(radius) {
-  for (let i = 5; i > 0; i--) {
-    fill(255, 200, 0, map(i, 1, 5, 50, 10));
-    ellipse(0, 0, radius * i * 0.4);
+function drawFlowDots(diamondSize, discharge) {
+  let dotCount = floor(map(discharge, 1000, 50000, 5, 50)); // 点的数量与流量相关
+  fill("white");
+  noStroke();
+
+  for (let i = 0; i < dotCount; i++) {
+    // 在菱形内随机生成点
+    let angle = random(TWO_PI);
+    let radius = random(diamondSize / 2); // 点限制在菱形的范围内
+    let x = cos(angle) * radius;
+    let y = sin(angle) * radius;
+
+    // 过滤掉点落在菱形外部的情况
+    if (abs(x) + abs(y) < diamondSize / 2) {
+      ellipse(x, y, 3, 3);
+    }
   }
+}
+
+function drawWrappedText(content, x, y, maxWidth) {
+  let lines = content.split("\n");
+  let yOffset = 0;
+  let lineHeight = 12;
+
+  for (let line of lines) {
+    let words = line.split(" ");
+    let currentLine = "";
+
+    for (let word of words) {
+      let testLine = currentLine + word + " ";
+      if (textWidth(testLine) > maxWidth) {
+        text(currentLine, x, y + yOffset);
+        currentLine = word + " ";
+        yOffset += lineHeight;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    text(currentLine, x, y + yOffset);
+    yOffset += lineHeight;
+  }
+}
+
+// 添加屏幕大小变化的动态响应
+function windowResized() {
+  setup();
 }
